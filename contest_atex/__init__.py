@@ -98,11 +98,6 @@ class ContestOrchestrator(AdHocOrchestrator):
         return max(to_run, key=lambda test: all_tests[test].get("extra-priority", 0))
 
     def destructive(self, info):
-        # if Executor ended with an exception (ie. duration exceeded),
-        # consider the test destructive
-        if info.exception:
-            return True
-
         # if the test returned non-0 exit code, it could have thrown
         # a python exception of its own, or (if bash) aborted abruptly
         # due to 'set -e', don't trust the remote, consider it destroyed

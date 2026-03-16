@@ -1,0 +1,108 @@
+/plan:
+  provision:
+    hardware:
+      virtualization: {is-supported: true}
+      memory: '>= 190 GB'
+
+  discover:
+    how: fmf
+    test: /vmhost/test
+
+  execute:
+    how: tmt
+
+  prepare:
+    - name: Disable weak dep installation
+      how: shell
+      order: 10
+      script: echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
+
+    - name: Install test + libvirt dependencies
+      how: install
+      package:
+        - util-linux
+        - procps-ng
+        - python3
+        - python3-pip
+        - git-core
+        - rsync
+        - openssh-clients
+        - podman
+        # libvirt & dependencies
+        - libvirt-daemon
+        - libvirt-daemon-driver-qemu
+        - libvirt-daemon-driver-storage-disk
+        #- libvirt-daemon-driver-network
+        - qemu-kvm
+        - libvirt-client
+        - virt-install
+
+    - name: Examine hardware
+      how: shell
+      script: |
+        set -x +e
+        lscpu
+        lsmem
+        lsblk
+        df -h
+
+    - name: Install atex
+      how: shell
+      # install the same ref as was used for this repo (contest_atex)
+      script: |
+        if [[ $TESTING_FARM_GIT_REF ]]; then
+          python3 -m pip install "git+https://github.com/RHSecurityCompliance/atex.git@$TESTING_FARM_GIT_REF"
+        else
+          python3 -m pip install atex
+        fi
+
+    - name: Install contest_atex
+      how: shell
+      # install contest_atex from this repo
+      script: python3 -m pip install .
+
+    - name: Copy atex-virt-helper to /usr/local/bin
+      how: shell
+      script: ./vmhost/install-helper.py
+
+    - name: Set up libvirt and domains
+      how: shell
+      script: ./vmhost/setup-libvirt.sh
+
+    - name: Clone and build CaC/content and Contest
+      how: shell
+      script: ./vmhost/clone-repos.sh
+
+    - name: Generate an ssh key for connecting to VMs
+      how: shell
+      script: ssh-keygen -t rsa -f "$VM_SSH_KEY" -N ''
+
+    - name: Pre-install CentOS VM images
+      how: shell
+      script: |
+        ./vmhost/install-images.sh \
+          cs8=https://vault.centos.org/8-stream/BaseOS/x86_64/os/ \
+          cs9=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/ \
+          cs10=https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/
+
+  finish:
+    - name: Check disk usage (for debugging)
+      how: shell
+      script: |
+        set -x +e
+        df -h
+        ls -lsh /var/lib/libvirt/images
+
+  environment:
+    CONTENT_DIR_8: /root/content/cs8
+    CONTENT_DIR_9: /root/content/cs9
+    CONTENT_DIR_10: /root/content/cs10
+    CONTEST_DIR: /root/contest
+    VM_SSH_KEY: /root/ssh_key
+
+/test:
+  test: ./test.py
+  duration: 4h
+  require:
+    - type: file
+      pattern: /
