@@ -1,0 +1,18 @@
+/plan:
+  provision:
+    how: container
+  execute:
+    how: tmt
+  prepare:
+    how: shell
+    script:
+      # install contest_atex, which also installs atex
+      - python3 -m pip install .
+
+/test:
+  test: python3 test.py
+  requires:
+    - python3
+    - python3-pip
+    - git-core
+    - rsync
