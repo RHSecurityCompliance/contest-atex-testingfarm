@@ -4,20 +4,9 @@ This repo integrates [Contest](https://github.com/RHSecurityCompliance/contest),
 the test suite, with [ATEX](https://github.com/RHSecurityCompliance/atex),
 an inrastructure and test running framework.
 
-It has 3 basic use cases:
+It has 2 basic use cases:
 
-## 1. Providing `ContestOrchestrator`
-
-[ContestOrchestrator](contest_atex/__init__.py) is a subclass of ATEX's
-AdHocOrchestrator, with additional functionality for running Contest
-specifically. It's provided by the [contest\_atex](contest_atex) module
-and can be installed with
-
-```
-pip install git+https://github.com/RHSecurityCompliance/contest-atex-testingfarm
-```
-
-## 2. Using Testing Farm as a runner
+## 1. Using Testing Farm as a runner
 
 This uses [Testing Farm](https://testing-farm.io/)'s ability to run tests
 in a container thanks to
@@ -48,7 +37,7 @@ $ testing-farm request \
     -e TODO_SOME_VAR=...
 ```
 
-## 3. Running on a giant VM host
+## 2. Running on a giant VM host
 
 This variant uses [Testing Farm](https://testing-farm.io/) to reserve one big
 virtualization-capable system (VM host) (typ. 256G RAM, 64 CPU cores, etc.),

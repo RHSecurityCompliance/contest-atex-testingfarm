@@ -32,10 +32,10 @@
         - libvirt-daemon
         - libvirt-daemon-driver-qemu
         - libvirt-daemon-driver-storage-disk
-        #- libvirt-daemon-driver-network
         - qemu-kvm
         - libvirt-client
         - virt-install
+        - libguestfs-tools-c
 
     - name: Examine hardware
       how: shell
@@ -56,11 +56,6 @@
           python3 -m pip install atex
         fi
 
-    - name: Install contest_atex
-      how: shell
-      # install contest_atex from this repo
-      script: python3 -m pip install .
-
     - name: Copy atex-virt-helper to /usr/local/bin
       how: shell
       script: ./vmhost/install-helper.py
@@ -80,10 +75,11 @@
     - name: Pre-install CentOS VM images
       how: shell
       script: |
-        ./vmhost/install-images.sh \
-          cs8=https://vault.centos.org/8-stream/BaseOS/x86_64/os/ \
-          cs9=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/ \
-          cs10=https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/
+        ./vmhost/install-images.sh
+
+    - name: Free up disk space (remove built content)
+      how: shell
+      script: rm -rf "$CONTENT_DIR_8" "$CONTENT_DIR_9" "$CONTENT_DIR_10"
 
   finish:
     - name: Check disk usage (for debugging)
@@ -97,6 +93,9 @@
     CONTENT_DIR_8: /root/content/cs8
     CONTENT_DIR_9: /root/content/cs9
     CONTENT_DIR_10: /root/content/cs10
+    INSTALL_URL_8: https://vault.centos.org/8-stream/BaseOS/x86_64/os/
+    INSTALL_URL_9: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+    INSTALL_URL_10: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/
     CONTEST_DIR: /root/contest
     VM_SSH_KEY: /root/ssh_key
 

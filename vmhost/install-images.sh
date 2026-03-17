@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [[ $# -lt 3 ]]; then
-  echo "usage: $0 <name=url> [name=url]..."
-  exit 1
-fi
-
 set -e -x
 
 tmpdir=$(mktemp -d)
@@ -29,22 +24,12 @@ pushd "$CONTEST_DIR"
 contest_packages=$(atex fmf --plan /plans/stabilization requires)
 popd
 
-declare -A images
-
-# verify all args before doing anything
-for arg in "$@"; do
-  IFS='=' read name url <<<"$arg"
-  if [[ -z $name || -z $url ]]; then
-    echo "error: name or url empty: $arg"
-    exit 1
-  fi
-  images[$name]=$url
-done
-
 declare -A pids
 
-for name in "${!images[@]}"; do
-  url=${images[$name]}
+for var in "${!INSTALL_URL_@}"; do
+  stream="${var#INSTALL_URL_}"
+  name="cs$stream"
+  url=${!var}
   run_install "$name" "$url" "$contest_packages" &> "$tmpdir/install-$name" &
   pids[$!]=$name
 done
@@ -63,3 +48,11 @@ while [[ ${#pids[@]} -gt 0 ]]; do
 done
 
 [[ $failed ]] && exit 1 || exit 0
+
+# embed built content into the images
+for var in "${!CONTENT_DIR_@}"; do
+  stream="${var#CONTENT_DIR_}"
+  image="/var/lib/libvirt/images/cs$stream"
+  dir=${!var}
+  virt-copy-in -a "$image" "$dir" /root/content
+done
