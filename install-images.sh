@@ -3,7 +3,7 @@
 set -e -x
 
 tmpdir=$(mktemp -d)
-trap "rm -rf $tmpdir" EXIT
+trap "rm -rf '$tmpdir'" EXIT
 
 function run_install {
   local name=$1 url=$2 packages=$3

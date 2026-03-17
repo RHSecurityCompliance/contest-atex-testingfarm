@@ -98,5 +98,8 @@
     VM_SSH_KEY: /root/ssh_key
 
 /test:
-  test: ./test.py
+  test: |
+    set -x -e
+    ./run-testing.py
+    ./render-results.sh
   duration: 4h

@@ -9,9 +9,9 @@ virtualization-capable system (VM host) (typ. 256G RAM, 64 CPU cores, etc.),
 prepares a reference VM image based on the VM host's repositories, and spins up
 many VMs to be used for the testing itself.
 
-In this case, the VM host itself runs [test.py](test.py), the ATEX-using script,
-and the final results are also uploaded to Testing Farm artifacts from this
-VM host.
+In this case, the VM host itself runs [main.fmf](main.fmf) to prepare the host,
+run all the testing and render results, uploading them as Testing Farm artifacts
+of this exact test (tmt plan).
 
 (IOW there is no separate ATEX runner that would reserve a VM host, it all
 happens on the host itself.)
