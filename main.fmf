@@ -6,7 +6,6 @@
 
   discover:
     how: fmf
-    test: /vmhost/test
 
   execute:
     how: tmt
@@ -58,15 +57,15 @@
 
     - name: Copy atex-virt-helper to /usr/local/bin
       how: shell
-      script: ./vmhost/install-helper.py
+      script: ./install-helper.py
 
     - name: Set up libvirt and domains
       how: shell
-      script: ./vmhost/setup-libvirt.sh
+      script: ./setup-libvirt.sh
 
     - name: Clone and build CaC/content and Contest
       how: shell
-      script: ./vmhost/clone-repos.sh
+      script: ./clone-repos.sh
 
     - name: Generate an ssh key for connecting to VMs
       how: shell
@@ -74,8 +73,7 @@
 
     - name: Pre-install CentOS VM images
       how: shell
-      script: |
-        ./vmhost/install-images.sh
+      script: ./install-images.sh
 
     - name: Free up disk space (remove built content)
       how: shell
@@ -102,6 +100,3 @@
 /test:
   test: ./test.py
   duration: 4h
-  require:
-    - type: file
-      pattern: /
