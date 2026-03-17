@@ -71,5 +71,5 @@ for var in "${!CONTENT_DIR_@}"; do
   stream="${var#CONTENT_DIR_}"
   image="/var/lib/libvirt/images/cs$stream"
   dir=${!var}
-  virt-copy-in -a "$image" "$dir" /root/content
+  virt-copy-in -a "$image" "$dir" "$CONTENT_ON_VM"
 done

@@ -59,7 +59,7 @@ class ContestOrchestrator:
             name += "_fips"
         return name
 
-    def next_test(self, to_run, previous):
+    def next_test(self, to_run, previous, /):
         all_tests = self.fmf_tests.tests
         # fresh remote, prefer running destructive tests (which likely need
         # clean OS) to get them out of the way and prevent them from running
@@ -90,7 +90,7 @@ class ContestOrchestrator:
 
         return super().next_test(to_run, previous)
 
-    def destructive(self, info):
+    def destructive(self, info, /):
         # 2 is a valid result with oscap finding failures
         if info.exit_code not in [0,2]:
             return True
@@ -214,7 +214,7 @@ with contextlib.ExitStack() as stack:
                 conn,
                 fmf_tests=tests,
                 # embedded inside the VM image by virt-copy-in
-                env={"CONTEST_CONTENT": "/root/content"},
+                env={"CONTEST_CONTENT": os.environ["CONTENT_ON_VM"]},
             ),
             old_aggregator=old_aggregator,
             fmf_tests=fmf_tests,

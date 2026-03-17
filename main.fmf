@@ -96,6 +96,7 @@
     INSTALL_URL_10: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/
     CONTEST_DIR: /root/contest
     VM_SSH_KEY: /root/ssh_key
+    CONTENT_ON_VM: /root/upstream-content
 
 /test:
   test: |
