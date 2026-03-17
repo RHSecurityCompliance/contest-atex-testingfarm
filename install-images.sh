@@ -8,6 +8,22 @@ trap "rm -rf '$tmpdir'" EXIT
 function run_install {
   local name=$1 url=$2 packages=$3
   local ssh_pubkey=$(cat "$VM_SSH_KEY.pub")
+
+  # fix repositories on old CentOS Streams that live on vault now
+  local fix_repo=
+  if [[ $url == *vault.centos.org* ]]; then
+    lines=(
+      "%post"
+      "sed -i \\"
+      "  -e 's/^mirrorlist/#mirrorlist/' \\"
+      "  -e 's/^#baseurl/baseurl/' \\"
+      "  -e 's/mirror\\.centos\\.org/vault.centos.org/' \\"
+      "  /etc/yum.repos.d/CentOS-*.repo"
+      "%end"
+    )
+    printf -v fix_repo '%s\n' "${lines[@]}"
+  fi
+
   atex shvirt \
     --helper-localhost \
     install \
@@ -15,6 +31,7 @@ function run_install {
     --location "$url" \
     --ks-packages "$packages" \
     --ks-sshkeys "$ssh_pubkey" \
+    --ks-append "$fix_repo" \
     --reserve \
     --reserve-name "img install"
 }
