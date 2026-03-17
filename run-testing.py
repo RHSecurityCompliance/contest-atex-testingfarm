@@ -129,7 +129,8 @@ console_log.setFormatter(logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 ))
 # debug log - store ALL debugging info, compressed
-debug_log_fobj = lzma.open("runcontest.txt.xz", "wt")
+tmt_test_data = Path(os.environ["TMT_TEST_DATA"])
+debug_log_fobj = lzma.open(tmt_test_data / "test-debug.log.xz", "wt")
 atexit.register(debug_log_fobj.close)
 file_log = logging.StreamHandler(debug_log_fobj)
 file_log.setLevel(logging.DEBUG)
