@@ -27,7 +27,7 @@ ssh_key = os.environ["VM_SSH_KEY"]
 plan = os.environ.get("PLAN", "/plans/daily")
 reruns = int(os.environ.get("RERUNS", "1"))
 
-# parse built content dirs from tmt plan env
+# parse valid CentOS Streams from env variables
 streams = set()
 for key in os.environ:
     if key.startswith("CONTENT_DIR_"):
@@ -209,7 +209,12 @@ with contextlib.ExitStack() as stack:
             tests=fmf_tests.tests.keys(),
             provisioners=(provisioner,),
             aggregator=aggregator,
-            executor=lambda conn, tests=fmf_tests: FMFExecutor(conn, fmf_tests=tests),
+            executor=lambda conn, tests=fmf_tests: FMFExecutor(
+                conn,
+                fmf_tests=tests,
+                # embedded inside the VM image by virt-copy-in
+                env={"CONTEST_CONTENT": "/root/content"},
+            ),
             old_aggregator=old_aggregator,
             fmf_tests=fmf_tests,
         )
