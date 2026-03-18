@@ -45,7 +45,7 @@ read -r -d '' vm_template <<'EOF'
   <name>%%%NAME%%%</name>
   <memory unit='GiB'>6</memory>
   <currentMemory unit='GiB'>6</currentMemory>
-  <vcpu placement='static'>1</vcpu>
+  <vcpu placement='static'>3</vcpu>
   <os firmware='efi'>
     <type arch='x86_64' machine='q35'>hvm</type>
     <loader secure='no'/>
