@@ -2,8 +2,9 @@
 
 set -e -x
 
-# (6GB per VM + 1GB for QEMU itself) * 26 = 182 GB (few GBs for host itself)
-TOTAL_VMS=26
+# (6GB per VM + 1GB for QEMU itself) * 50 = 350 GB
+# - leave a few GBs for host itself and its page cache / dirty writeback
+TOTAL_VMS=50
 
 # disallow qemu network bridge helper use by non-root (just in case)
 # - all domains should use passt/SLIRP
