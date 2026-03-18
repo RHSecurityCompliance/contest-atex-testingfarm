@@ -64,7 +64,7 @@ while [[ ${#pids[@]} -gt 0 ]]; do
   unset pids[$pid]
 done
 
-[[ $failed ]] && exit 1 || exit 0
+[[ $failed ]] && exit 1
 
 # embed built content into the images
 for var in "${!CONTENT_DIR_@}"; do
