@@ -45,6 +45,22 @@
         lsblk
         df -h
 
+    - name: Increase write caching
+      how: shell
+      # this is necessary because of extremely slow storage on Amazon EC2 bare
+      # metal systems used by Testing Farm - this, along with cache=unsafe,
+      # basically makes our testing possible
+      # - the idea is to do async slow background writeback, never blocking
+      #   writes until ~80% RAM of writeback buffer (should never hit that)
+      script: |
+        set -x +e
+        sysctl -w \
+          vm.dirty_ratio=80 \
+          vm.dirty_background_ratio=10 \
+          vm.dirty_writeback_centisecs=500 \
+          vm.dirty_expire_centisecs=3000
+        swapoff /dev/zram0
+
     - name: Install atex
       how: shell
       # install the same ref as was used for this repo (contest_atex)
@@ -75,9 +91,20 @@
       how: shell
       script: ./install-images.sh
 
-    - name: Free up disk space (remove built content)
+    - name: Free up resources
       how: shell
-      script: rm -rf "$CONTENT_DIR_8" "$CONTENT_DIR_9" "$CONTENT_DIR_10"
+      script: |
+        set -x +e
+        # we don't need built content (already copied into VM images)
+        rm -rf "$CONTENT_DIR_8" "$CONTENT_DIR_9" "$CONTENT_DIR_10"
+        # don't need podman anymore
+        podman system reset --force
+        # free up page cache + prewarm the template images
+        sync
+        echo 3 > /proc/sys/vm/drop_caches
+        for img in /var/lib/libvirt/images/cs*; do
+          ./prewarm.py "$img"
+        done
 
   finish:
     - name: Check disk usage (for debugging)

@@ -65,7 +65,7 @@ read -r -d '' vm_template <<'EOF' || true
   <on_crash>restart</on_crash>
   <devices>
     <disk type='volume' device='disk'>
-      <driver name='qemu' type='raw' cache='none' io='native' discard='unmap'/>
+      <driver name='qemu' type='raw' cache='unsafe' discard='unmap'/>
       <source pool='default' volume='%%%NAME%%%'/>
       <target dev='vda' bus='virtio'/>
     </disk>
