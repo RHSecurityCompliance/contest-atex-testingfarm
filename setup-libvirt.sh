@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -x
+
 # (6GB per VM + 1GB for QEMU itself) * 26 = 182 GB (few GBs for host itself)
 TOTAL_VMS=26
 
@@ -95,3 +97,6 @@ for i in $(seq 1 $TOTAL_VMS); do
 done
 
 rm -f xml
+
+# log kvm kernel parameters (ie. nested virt)
+grep -r . /sys/module/kvm*/parameters || true
