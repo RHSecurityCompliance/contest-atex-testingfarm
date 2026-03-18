@@ -186,6 +186,7 @@ with contextlib.ExitStack() as stack:
             domain_sshkey=ssh_key,
             domain_host="127.0.0.1",
             reserve_name=f"{platform_name} testing",
+            reserve_delay=0.5,
         )
 
         fmf_tests = FMFTests(
