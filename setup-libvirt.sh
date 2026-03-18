@@ -42,7 +42,7 @@ virsh pool-autostart boot-scratch
 virsh pool-start boot-scratch
 
 # create VMs
-read -r -d '' vm_template <<'EOF'
+read -r -d '' vm_template <<'EOF' || true
 <domain type='kvm'>
   <name>%%%NAME%%%</name>
   <memory unit='GiB'>6</memory>
