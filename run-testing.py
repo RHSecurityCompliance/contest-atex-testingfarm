@@ -188,6 +188,7 @@ with contextlib.ExitStack() as stack:
             reserve_name=f"{platform_name} testing",
             reserve_delay=0.5,
         )
+        stack.enter_context(provisioner)
 
         fmf_tests = FMFTests(
             contest,
