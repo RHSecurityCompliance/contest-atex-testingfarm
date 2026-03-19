@@ -41,6 +41,7 @@
         - libvirt-client
         - virt-install
         - libguestfs-tools-c
+        - xfsprogs
 
     - name: Examine hardware
       how: shell
@@ -50,22 +51,15 @@
         lsmem
         lsblk
         df -h
+        mount
 
-    - name: Increase write caching
+    - name: Disable unnecessary swaps
       how: shell
-      # this is necessary because of extremely slow storage on Amazon EC2 bare
-      # metal systems used by Testing Farm - this, along with cache=unsafe,
-      # basically makes our testing possible
-      # - the idea is to do async slow background writeback, never blocking
-      #   writes until ~80% RAM of writeback buffer (should never hit that)
       script: |
-        set -x +e
-        sysctl -w \
-          vm.dirty_ratio=80 \
-          vm.dirty_background_ratio=10 \
-          vm.dirty_writeback_centisecs=500 \
-          vm.dirty_expire_centisecs=3000
-        swapoff /dev/zram0
+        if cat /proc/swaps | grep zram0; then
+          swapoff /dev/zram0
+          zramctl --reset /dev/zram0
+        fi
 
     - name: Install atex
       how: shell

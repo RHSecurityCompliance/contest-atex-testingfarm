@@ -2,13 +2,30 @@
 
 set -e -x
 
-# (6GB per VM + 1GB for QEMU itself) * 50 = 350 GB
-# - leave a few GBs for host itself and its page cache / dirty writeback
-TOTAL_VMS=50
+# (6GB per VM + 1GB for QEMU itself) * 36 = 252 GB
+# 252 + 100G zram = 352 GB, leaving ~30G for the host
+TOTAL_VMS=36
 
 # disallow qemu network bridge helper use by non-root (just in case)
 # - all domains should use passt/SLIRP
 echo -n > /etc/qemu/bridge.conf
+
+# because the default XFS/btrfs is super slow over Amazon EC2 EBS,
+# create a fast zram-backed block device with XFS on top, and use it
+# for image storage
+# - tmpfs can't be used, it doesn't support reflink, and we get compression
+#   via zram this way too
+modprobe zram
+zdev=$(zramctl --find --size 100G --algorithm lz4)
+mkfs.xfs -m reflink=1 "$zdev"
+mv /var/lib/libvirt{,.bak}
+mkdir /var/lib/libvirt
+mount "$zdev" /var/lib/libvirt
+for tool in chmod chown chcon; do
+  "$tool" --reference=/var/lib/libvirt.bak /var/lib/libvirt  # the dir itself
+done
+cp -a /var/lib/libvirt.bak/. /var/lib/libvirt/
+rm -rf /var/lib/libvirt.bak
 
 systemctl enable --now \
   virtqemud.socket virtstoraged.socket
@@ -66,7 +83,7 @@ read -r -d '' vm_template <<'EOF' || true
   <on_crash>restart</on_crash>
   <devices>
     <disk type='volume' device='disk'>
-      <driver name='qemu' type='raw' cache='unsafe' discard='unmap'/>
+      <driver name='qemu' type='raw' cache='none' io='native' discard='unmap'/>
       <source pool='default' volume='%%%NAME%%%'/>
       <target dev='vda' bus='virtio'/>
     </disk>
