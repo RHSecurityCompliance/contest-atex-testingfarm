@@ -70,6 +70,15 @@ done
 for var in "${!CONTENT_DIR_@}"; do
   stream="${var#CONTENT_DIR_}"
   image="/var/lib/libvirt/images/cs$stream"
-  dir=${!var}
-  virt-copy-in -a "$image" "$dir" "$CONTENT_ON_VM"
+  content_dir=${!var}
+
+  # temporarily rename content_dir to match the basename of CONTENT_ON_VM,
+  # since virt-copy-in (or guestfish) take just an existing destination dir
+  # to copy the source to, we can't also rename the source dir, eg. the
+  # equivalent of 'cp -r some/content /root/upstream-content' cannot be done
+  parent=${content_dir%/*}
+  base=${CONTENT_ON_VM##*/}
+  mv "$content_dir" "$parent/$base"
+  virt-copy-in -a "$image" "$parent/$base" "${CONTENT_ON_VM%/*}"
+  mv "$parent/$base" "$content_dir"
 done
