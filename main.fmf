@@ -53,14 +53,6 @@
         df -h
         mount
 
-    - name: Disable unnecessary swaps
-      how: shell
-      script: |
-        if cat /proc/swaps | grep zram0; then
-          swapoff /dev/zram0
-          zramctl --reset /dev/zram0
-        fi
-
     - name: Install atex
       how: shell
       # install the same ref as was used for this repo (contest_atex)
