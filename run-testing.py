@@ -7,6 +7,7 @@ import logging
 import lzma
 import os
 import platform
+import random
 import shutil
 import signal
 import sys
@@ -44,6 +45,8 @@ class ContestOrchestrator:
         """
         super().__init__(*args, **kwargs)
         self.fmf_tests = fmf_tests
+        # randomize to_run, works better with Contest snapshot sharing
+        self.to_run = dict.fromkeys(random.sample(list(self.to_run), len(self.to_run)))
 
     # copy/pasted from the Contest repo, lib/virt.py
     @staticmethod
