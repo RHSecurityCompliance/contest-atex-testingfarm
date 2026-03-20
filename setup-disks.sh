@@ -7,7 +7,7 @@ empty_disks=()
 
 for disk in /dev/nvme[0-9]n1; do
   if ! out=$(sfdisk -d "$disk" 2>&1); then
-    if [[ $out == *does not contain a recognized partition table* ]]; then
+    if [[ $out == *does\ not\ contain\ a\ recognized\ partition\ table* ]]; then
       empty_disks+=("$disk")
     fi
   fi
