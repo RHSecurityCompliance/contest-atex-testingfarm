@@ -40,6 +40,7 @@
         - qemu-kvm
         - libvirt-client
         - virt-install
+        - edk2-ovmf
         - libguestfs-tools-c
         - xfsprogs
         - mdadm
