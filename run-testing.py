@@ -16,7 +16,7 @@ from pathlib import Path
 
 from atex.aggregator.json import LZMAJSONAggregator
 from atex.connection.local import LocalConnection
-from atex.executor.fmf import FMFExecutor, FMFTests, metadata
+from atex.executor.fmf import FMFExecutor, FMFTests
 from atex.orchestrator import adhoc
 from atex.provisioner.shvirt import SharedVirtProvisioner
 
@@ -168,7 +168,7 @@ with contextlib.ExitStack() as stack:
     old_runs = Path("old_runs")
     old_runs.mkdir()
     old_aggregator = LZMAJSONAggregator(
-        old_runs / "results.json.gz",
+        old_runs / "results.json.xz",
         old_runs / "files",
         allow_duplicate=True,
     )
@@ -204,12 +204,6 @@ with contextlib.ExitStack() as stack:
             },
         )
 
-        # adjust all tests to have twice their max duration
-        for data in fmf_tests.tests.values():
-            duration = data.get("duration", "5m")
-            secs = metadata.duration_to_seconds(duration)
-            data["duration"] = str(secs * 2)
-
         class PerStreamOrchestrator(
             ContestOrchestrator,
             adhoc.FMFPriorityMixin(fmf_tests),
@@ -241,15 +235,16 @@ with contextlib.ExitStack() as stack:
 
     next_writeout = time.monotonic() + 300
     while orchestrators:
-        finished = {o for o in orchestrators if o.serve_once()}
+        finished = {o for o in orchestrators if not o.serve_once()}
         if time.monotonic() > next_writeout:
             statuses = "  " + "\n  ".join(str(o) for o in orchestrators)
             logging.info(f"STATISTICS:\n{statuses}")
             next_writeout = time.monotonic() + 300
         time.sleep(0.1)
+        orchestrators.difference_update(finished)
 
 # if old_runs is empty (not a single result in the JSON), delete the folder
-with gzip.open(old_runs / "results.json.gz", "rb") as f:
+with lzma.open(old_runs / "results.json.xz", "rb") as f:
     is_empty = f.read(1) == b""
 if is_empty:
     shutil.rmtree(old_runs)
