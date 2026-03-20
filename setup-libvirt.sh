@@ -10,23 +10,6 @@ TOTAL_VMS=36
 # - all domains should use passt/SLIRP
 echo -n > /etc/qemu/bridge.conf
 
-# because the default XFS/btrfs is super slow over Amazon EC2 EBS,
-# create a fast zram-backed block device with XFS on top, and use it
-# for image storage
-# - tmpfs can't be used, it doesn't support reflink, and we get compression
-#   via zram this way too
-modprobe zram
-zdev=$(zramctl --find --size 100G --algorithm lz4)
-mkfs.xfs -m reflink=1 "$zdev"
-mv /var/lib/libvirt{,.bak}
-mkdir /var/lib/libvirt
-mount "$zdev" /var/lib/libvirt
-for tool in chmod chown chcon; do
-  "$tool" --reference=/var/lib/libvirt.bak /var/lib/libvirt  # the dir itself
-done
-cp -a /var/lib/libvirt.bak/. /var/lib/libvirt/
-rm -rf /var/lib/libvirt.bak
-
 systemctl enable --now \
   virtqemud.socket virtstoraged.socket
 

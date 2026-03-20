@@ -1,14 +1,14 @@
 /plan:
   provision:
-    hardware:
-      memory: '>= 360 GiB'
-      cpu:
-        processors: '>= 90'
-      disk:
-        - size: '>= 450 GiB'
-      virtualization:
-        is-virtualized: false
-        is-supported: true
+  hardware:
+    cpu:
+      processors: 48
+    memory: "384 GiB"
+    disk:
+      - size: "500 GiB"
+    virtualization:
+      is-virtualized: false
+      is-supported: true
 
   discover:
     how: fmf
@@ -42,6 +42,7 @@
         - virt-install
         - libguestfs-tools-c
         - xfsprogs
+        - mdadm
 
     - name: Examine hardware
       how: shell
@@ -52,6 +53,10 @@
         lsblk
         df -h
         mount
+
+    - name: Set up NVMe disks for use as libvirt storage
+      how: shell
+      script: ./setup-disks.sh
 
     - name: Install atex
       how: shell
@@ -91,12 +96,9 @@
         rm -rf "$CONTENT_DIR_8" "$CONTENT_DIR_9" "$CONTENT_DIR_10"
         # don't need podman anymore
         podman system reset --force
-        # free up page cache + prewarm the template images
+        # free up page cache
         sync
         echo 3 > /proc/sys/vm/drop_caches
-        for img in /var/lib/libvirt/images/cs*; do
-          ./prewarm.py "$img"
-        done
 
   finish:
     - name: Check disk usage (for debugging)
