@@ -2,9 +2,9 @@
 
 set -e -x
 
-# (6GB per VM + 1GB for QEMU itself) * 36 = 252 GB
-# 252 + 100G zram = 352 GB, leaving ~30G for the host
-TOTAL_VMS=36
+# a bit over-provisioned for 384GB host, but should still leave
+# about 60 GB of reserve in practice
+TOTAL_VMS=50
 
 # disallow qemu network bridge helper use by non-root (just in case)
 # - all domains should use passt/SLIRP
