@@ -20,4 +20,9 @@ if [[ -d old_runs ]]; then
   cp -rv "$atex_html"/{index.html,sqljs} output/old_runs/.
 fi
 
+# pre-fill the SQL filter since the index.html will be embedded within
+# the Oculus viewer without us being able to give it ?q= upfront
+sed "/DOMContentLoaded/a set_url_query(\"status NOT IN ('pass', 'warn', 'skip')\");" \
+  -i output/index.html
+
 mv -v output/* "$TMT_TEST_DATA/."
