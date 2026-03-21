@@ -4,7 +4,7 @@ set -e -x
 
 # a bit over-provisioned for 384GB host, but should still leave
 # about 60 GB of reserve in practice
-TOTAL_VMS=70
+TOTAL_VMS=60
 
 # disallow qemu network bridge helper use by non-root (just in case)
 # - all domains should use passt/SLIRP
@@ -51,7 +51,6 @@ read -r -d '' vm_template <<'EOF' || true
   <vcpu placement='static'>2</vcpu>
   <os firmware='efi'>
     <type arch='x86_64' machine='q35'>hvm</type>
-    <loader secure='no'/>
     <boot dev='hd'/>
   </os>
   <features>
