@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-from atex.aggregator.json import LZMAJSONAggregator
+from atex.aggregator.jsonl import LZMAJSONLinesAggregator
 from atex.connection.local import LocalConnection
 from atex.executor.fmf import FMFExecutor, FMFTests
 from atex.orchestrator import adhoc
@@ -158,7 +158,7 @@ signal.signal(signal.SIGHUP, abort_on_signal)
 with contextlib.ExitStack() as stack:
     runs = Path("runs")
     runs.mkdir()
-    aggregator = LZMAJSONAggregator(
+    aggregator = LZMAJSONLinesAggregator(
         runs / "results.json.xz",
         runs / "files",
     )
@@ -166,7 +166,7 @@ with contextlib.ExitStack() as stack:
 
     old_runs = Path("old_runs")
     old_runs.mkdir()
-    old_aggregator = LZMAJSONAggregator(
+    old_aggregator = LZMAJSONLinesAggregator(
         old_runs / "results.json.xz",
         old_runs / "files",
         allow_duplicate=True,
