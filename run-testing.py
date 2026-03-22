@@ -2,7 +2,6 @@
 
 import atexit
 import contextlib
-import gzip
 import logging
 import lzma
 import os
@@ -16,7 +15,7 @@ from pathlib import Path
 
 from atex.aggregator.json import LZMAJSONAggregator
 from atex.connection.local import LocalConnection
-from atex.executor.fmf import FMFExecutor, FMFTests, metadata
+from atex.executor.fmf import FMFExecutor, FMFTests
 from atex.orchestrator import adhoc
 from atex.provisioner.shvirt import SharedVirtProvisioner
 

@@ -47,16 +47,16 @@ read -r -d '' vm_template <<'EOF' || true
 <domain type='kvm'>
   <name>%%%NAME%%%</name>
   <memory unit='GiB'>6</memory>
+  <currentMemory unit='GiB'>6</currentMemory>
   <vcpu placement='static'>2</vcpu>
-  <os>
-    <type arch='x86_64' machine='pc'>hvm</type>
-    <bios useserial='yes'/>
+  <os firmware='efi'>
+    <type arch='x86_64' machine='q35'>hvm</type>
     <boot dev='hd'/>
   </os>
   <features>
     <acpi/>
     <apic/>
-    <pae/>
+    <smm state='on'/>
   </features>
   <cpu mode='host-passthrough'></cpu>
   <clock offset='utc'/>
