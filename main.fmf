@@ -1,14 +1,14 @@
 /plan:
   provision:
-  hardware:
-    cpu:
-      processors: 48
-    memory: "384 GiB"
-    disk:
-      - size: "100 GiB"
-    virtualization:
-      is-virtualized: false
-      is-supported: true
+    hardware:
+      cpu:
+        processors: 48
+      memory: "384 GiB"
+      disk:
+        - size: "100 GiB"
+      virtualization:
+        is-virtualized: false
+        is-supported: true
 
   discover:
     how: fmf
