@@ -51,6 +51,7 @@ read -r -d '' vm_template <<'EOF' || true
   <vcpu placement='static'>2</vcpu>
   <os firmware='efi'>
     <type arch='x86_64' machine='q35'>hvm</type>
+    <loader secure='no'/>
     <boot dev='hd'/>
   </os>
   <features>
