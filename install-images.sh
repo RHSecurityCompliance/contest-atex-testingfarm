@@ -10,7 +10,7 @@ function run_install {
   local ssh_pubkey=$(cat "$VM_SSH_KEY.pub")
 
   # fix repositories on old CentOS Streams that live on vault now
-  local fix_repo=
+  local fix_cs8_repos=
   if [[ $url == *vault.centos.org* ]]; then
     lines=(
       "%post"
@@ -21,8 +21,17 @@ function run_install {
       "  /etc/yum.repos.d/CentOS-*.repo"
       "%end"
     )
-    printf -v fix_repo '%s\n' "${lines[@]}"
+    printf -v fix_cs8_repos '%s\n' "${lines[@]}"
   fi
+
+  # pre-cache dnf repos
+  lines=(
+    "%post"
+    "dnf -y clean all"
+    "dnf -y makecache"
+    "%end"
+  )
+  printf -v cache_repos '%s\n' "${lines[@]}"
 
   atex shvirt \
     --helper-localhost \
@@ -31,7 +40,8 @@ function run_install {
     --location "$url" \
     --ks-packages "$packages" \
     --ks-sshkeys "$ssh_pubkey" \
-    --ks-append "$fix_repo" \
+    --ks-append "$fix_cs8_repos" \
+    --ks-append "$cache_repos" \
     --reserve \
     --reserve-name "img install"
 }
