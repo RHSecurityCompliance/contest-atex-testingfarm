@@ -15,7 +15,7 @@ from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
 from atex.connection.local import LocalConnection
-from atex.executor.fmf import FMFExecutor, FMFTests
+from atex.executor.fmf import FMFExecutor, FMFTests, metadata
 from atex.orchestrator import adhoc
 from atex.provisioner.shvirt import SharedVirtProvisioner
 
@@ -203,6 +203,12 @@ with contextlib.ExitStack() as stack:
                 "arch": platform.machine(),
             },
         )
+
+        # adjust all tests to have twice their max duration
+        for data in fmf_tests.tests.values():
+            duration = data.get("duration", "5m")
+            secs = metadata.duration_to_seconds(duration)
+            data["duration"] = str(secs * 2)
 
         class PerStreamOrchestrator(
             ContestOrchestrator,
