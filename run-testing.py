@@ -26,6 +26,8 @@ ssh_key = os.environ["VM_SSH_KEY"]
 # from Packit env / TF env
 plan = os.environ.get("PLAN", "/plans/daily")
 reruns = int(os.environ.get("RERUNS", "1"))
+if (test_names := os.environ.get("TESTS")) is not None:
+    test_names = test_names.split(",")
 
 # parse valid CentOS Streams from env variables
 streams = set()
@@ -195,6 +197,7 @@ with contextlib.ExitStack() as stack:
         fmf_tests = FMFTests(
             contest,
             plan,
+            names=test_names,
             context={
                 "distro": f"centos-stream-{stream}",
                 "arch": platform.machine(),
