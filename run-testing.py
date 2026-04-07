@@ -15,7 +15,7 @@ from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
 from atex.connection.local import LocalConnection
-from atex.executor.fmf import FMFExecutor, FMFTests, metadata
+from atex.executor.fmf import FMFExecutor, metadata
 from atex.orchestrator import adhoc
 from atex.provisioner.shvirt import SharedVirtProvisioner
 
@@ -64,7 +64,7 @@ class ContestOrchestrator:
         return name
 
     def next_test(self, to_run, previous, /):
-        all_tests = self.fmf_tests.tests
+        all_tests = self.fmf_tests.data
         # fresh remote, prefer running destructive tests (which likely need
         # clean OS) to get them out of the way and prevent them from running
         # on a tainted OS later
@@ -100,7 +100,7 @@ class ContestOrchestrator:
             return True
 
         # if the test was destructive, assume the remote is destroyed
-        test_data = self.fmf_tests.tests[info.test_name]
+        test_data = self.fmf_tests.data[info.test_name]
         tags = test_data.get("tag", ())
         if "destructive" in tags:
             return True
@@ -194,7 +194,7 @@ with contextlib.ExitStack() as stack:
         )
         stack.enter_context(provisioner)
 
-        fmf_tests = FMFTests(
+        fmf_tests = metadata.discover(
             contest,
             plan,
             names=test_names,
@@ -205,7 +205,7 @@ with contextlib.ExitStack() as stack:
         )
 
         # adjust all tests to have twice their max duration
-        for data in fmf_tests.tests.values():
+        for data in fmf_tests.data.values():
             duration = data.get("duration", "5m")
             secs = metadata.duration_to_seconds(duration)
             data["duration"] = str(secs * 2)
@@ -220,7 +220,7 @@ with contextlib.ExitStack() as stack:
 
         orchestrator = PerStreamOrchestrator(
             platform=platform_name,
-            tests=fmf_tests.tests.keys(),
+            tests=fmf_tests.data.keys(),
             provisioners=(provisioner,),
             aggregator=aggregator,
             executor=lambda conn, tests=fmf_tests: FMFExecutor(
