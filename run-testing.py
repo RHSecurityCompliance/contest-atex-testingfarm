@@ -149,6 +149,17 @@ logging.basicConfig(
 )
 
 
+def format_statistics(pairs):
+    def gen():
+        for orch, prov in pairs:
+            yield str(prov)
+            yield str(orch)
+            for test_name in orch.running_tests:
+                yield f"  - {test_name}"
+
+    return "\n".join(gen())
+
+
 def abort_on_signal(signum, _):
     logging.error(f"got signal {signum}, aborting")
     raise SystemExit(1)
@@ -179,7 +190,7 @@ with contextlib.ExitStack() as stack:
     localhost_conn = LocalConnection()
     stack.enter_context(localhost_conn)
 
-    orchestrators = set()
+    running = set()
 
     for stream in streams:
         platform_name = f"cs{stream}"
@@ -202,6 +213,7 @@ with contextlib.ExitStack() as stack:
                 "distro": f"centos-stream-{stream}",
                 "arch": platform.machine(),
             },
+            libraries=False,
         )
 
         # adjust all tests to have twice their max duration
@@ -232,22 +244,29 @@ with contextlib.ExitStack() as stack:
             old_aggregator=old_aggregator,
             fmf_tests=fmf_tests,
         )
-        stack.enter_context(orchestrator)
 
-        orchestrators.add(orchestrator)
+        running.add((orchestrator, provisioner))
 
-    if not orchestrators:
+    if not running:
         raise RuntimeError("no orchestrators configured")
 
+    for orch, _ in running:
+        stack.enter_context(orch)
+
     next_writeout = time.monotonic() + 300
-    while orchestrators:
-        finished = {o for o in orchestrators if not o.serve_once()}
-        if time.monotonic() > next_writeout:
-            statuses = "  " + "\n  ".join(str(o) for o in orchestrators)
-            logging.info(f"STATISTICS:\n{statuses}")
-            next_writeout = time.monotonic() + 300
+    while running:
         time.sleep(0.1)
-        orchestrators.difference_update(finished)
+
+        if time.monotonic() > next_writeout:
+            logging.info(f"STATISTICS:\n{format_statistics(running)}")
+            next_writeout = time.monotonic() + 300
+
+        finished = {(orch, prov) for orch, prov in running if not orch.serve_once()}
+
+        for _, prov in finished:
+            prov.stop()  # release reservation-in-progress remotes immediately
+
+        running.difference_update(finished)
 
 # if old_runs is empty (not a single result in the JSON), delete the folder
 with lzma.open(old_runs / "results.json.xz", "rb") as f:
