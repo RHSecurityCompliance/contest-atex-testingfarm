@@ -22,7 +22,8 @@ fi
 
 # pre-fill the SQL filter since the index.html will be embedded within
 # the Oculus viewer without us being able to give it ?q= upfront
-sed "/DOMContentLoaded/a set_url_query(\"status NOT IN ('pass', 'warn', 'skip')\");" \
+# - only do that if the user hasn't pre-set query via direct URL
+sed "/DOMContentLoaded/a if (get_url_query() === null) set_url_query(\"status NOT IN ('pass', 'warn', 'skip') ORDER BY platform, test\");" \
   -i output/index.html
 
 mv -v output/* "$TMT_TEST_DATA/."
