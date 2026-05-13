@@ -2,23 +2,45 @@
 
 set -e -x
 
-# clone Contest, that's easy
-git clone --depth=1 https://github.com/RHSecurityCompliance/contest.git "$CONTEST_DIR"
-if [[ $CONTEST_PR ]]; then
-  echo "Checking out Contest PR:$CONTEST_PR"
-  pushd "$CONTEST_DIR"
-  git fetch origin "refs/pull/$CONTEST_PR/head"
-  git reset --hard FETCH_HEAD
-  popd
-fi
+# if set, treat Packit variables as Contest and use a static CaC/content,
+if [[ $TEST_CONTEST_INSTEAD == 1 ]]; then
+  # clone CaC/content, that's easy
+  # - use a temporary dir, we'll copy it to per-stream dirs later
+  git clone --depth=1 https://github.com/ComplianceAsCode/content.git temp_content
+  if [[ $CONTENT_PR ]]; then
+    echo "Checking out CaC/content PR:$CONTENT_PR"
+    pushd temp_content
+    git fetch origin "refs/pull/$CONTENT_PR/head"
+    git reset --hard FETCH_HEAD
+    popd
+  fi
+  # clone the Contest PR's code, double-check that the Packit-provided SHA exists
+  git clone -b "$PACKIT_SOURCE_BRANCH" --depth=1 "$PACKIT_SOURCE_URL" "$CONTEST_DIR"
+  if [[ $PACKIT_SOURCE_SHA ]]; then
+    pushd "$CONTEST_DIR"
+    git checkout -f "$PACKIT_SOURCE_SHA"
+    popd
+  fi
 
-# clone the PR's code, double-check that the Packit-provided SHA exists
-# - use a temporary dir, we'll copy it to per-stream dirs later
-git clone -b "$PACKIT_SOURCE_BRANCH" --depth=1 "$PACKIT_SOURCE_URL" temp_content
-if [[ $PACKIT_SOURCE_SHA ]]; then
-  pushd temp_content
-  git checkout -f "$PACKIT_SOURCE_SHA"
-  popd
+# otherwise treat Packit as CaC/content and use static Contest
+else
+  # clone Contest, that's easy
+  git clone --depth=1 https://github.com/RHSecurityCompliance/contest.git "$CONTEST_DIR"
+  if [[ $CONTEST_PR ]]; then
+    echo "Checking out Contest PR:$CONTEST_PR"
+    pushd "$CONTEST_DIR"
+    git fetch origin "refs/pull/$CONTEST_PR/head"
+    git reset --hard FETCH_HEAD
+    popd
+  fi
+  # clone the CaC/content PR's code, double-check that the Packit-provided SHA exists
+  # - use a temporary dir, we'll copy it to per-stream dirs later
+  git clone -b "$PACKIT_SOURCE_BRANCH" --depth=1 "$PACKIT_SOURCE_URL" temp_content
+  if [[ $PACKIT_SOURCE_SHA ]]; then
+    pushd temp_content
+    git checkout -f "$PACKIT_SOURCE_SHA"
+    popd
+  fi
 fi
 
 # build the PR's code in a secured container (may be malicious)
