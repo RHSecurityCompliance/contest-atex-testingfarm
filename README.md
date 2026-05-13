@@ -16,9 +16,10 @@ of this exact test (tmt plan).
 (IOW there is no separate ATEX runner that would reserve a VM host, it all
 happens on the host itself.)
 
-To use it, prefer Packit and manual trigger via `/packit -i contest-full`:
+To use it, prefer Packit and manual trigger via `/packit test -i contest-full`:
 
 ```
+jobs:
 - job: tests
   trigger: pull_request
   identifier: contest-full
@@ -27,6 +28,10 @@ To use it, prefer Packit and manual trigger via `/packit -i contest-full`:
   skip_build: true
   fmf_url: https://github.com/RHSecurityCompliance/contest-atex-testingfarm.git
   fmf_ref: devel
+  tf_extra_params:
+    settings:
+      pipeline:
+        timeout: 1200
 ```
 
 But manual submission works too:

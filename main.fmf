@@ -25,6 +25,8 @@
     - name: Install test + libvirt dependencies
       how: install
       package:
+        - xz
+        - jq
         - util-linux
         - procps-ng
         - python3
@@ -120,8 +122,24 @@
     CONTENT_ON_VM: /root/upstream-content
 
 /test:
+  duration: 12h
   test: |
     set -x -e
+
     ./run-testing.py
+
     ./render-results.sh
-  duration: 8h
+
+    # at least one pass
+    if ! xzcat runs/results.json.xz | jq -n -e 'first(inputs | select(.[1] == "pass"))'; then
+      echo "no pass results found"
+      exit 1
+    fi
+
+    # exit with 1 on failure
+    if xzcat runs/results.json.xz | jq -n -e 'first(inputs | select(.[1] | IN("fail","error","infra")))'; then
+      echo "at least one failure found"
+      exit 1
+    fi
+
+    exit 0
