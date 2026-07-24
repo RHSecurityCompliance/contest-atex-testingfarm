@@ -62,13 +62,8 @@
 
     - name: Install atex
       how: shell
-      # install the same ref as was used for this repo (contest_atex)
       script: |
-        if [[ $TESTING_FARM_GIT_REF ]]; then
-          python3 -m pip install "git+https://github.com/RHSecurityCompliance/atex.git@$TESTING_FARM_GIT_REF"
-        else
-          python3 -m pip install atex
-        fi
+        python3 -m pip install 'atex>=1.0,<2'
 
     - name: Copy atex-virt-helper to /usr/local/bin
       how: shell

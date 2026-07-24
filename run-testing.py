@@ -15,7 +15,7 @@ from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
 from atex.connection.local import LocalConnection
-from atex.executor.fmf import FMFExecutor, metadata
+from atex.executor.fmf import FMFExecutor, discover, duration_to_seconds
 from atex.orchestrator import adhoc
 from atex.provisioner.shvirt import SharedVirtProvisioner
 
@@ -46,8 +46,6 @@ class ContestOrchestrator:
         """
         super().__init__(*args, **kwargs)
         self.fmf_tests = fmf_tests
-        # randomize to_run, works better with Contest snapshot sharing
-        self.to_run = dict.fromkeys(random.sample(list(self.to_run), len(self.to_run)))
 
     # copy/pasted from the Contest repo, lib/virt.py
     @staticmethod
@@ -154,8 +152,6 @@ def format_statistics(pairs):
         for orch, prov in pairs:
             yield str(prov)
             yield str(orch)
-            for test_name in orch.running_tests:
-                yield f"  - {test_name}"
 
     return "\n".join(gen())
 
@@ -205,7 +201,7 @@ with contextlib.ExitStack() as stack:
         )
         stack.enter_context(provisioner)
 
-        fmf_tests = metadata.discover(
+        fmf_tests = discover(
             contest,
             plan,
             names=test_names,
@@ -219,7 +215,7 @@ with contextlib.ExitStack() as stack:
         # adjust all tests to have twice their max duration
         for data in fmf_tests.data.values():
             duration = data.get("duration", "5m")
-            secs = metadata.duration_to_seconds(duration)
+            secs = duration_to_seconds(duration)
             data["duration"] = str(secs * 2)
 
         class PerStreamOrchestrator(
@@ -230,9 +226,13 @@ with contextlib.ExitStack() as stack:
         ):
             pass
 
+        # randomize test order to work better with Contest snapshot sharing
+        test_names = list(fmf_tests.data)
+        random.shuffle(test_names)
+
         orchestrator = PerStreamOrchestrator(
             platform=platform_name,
-            tests=fmf_tests.data.keys(),
+            tests=test_names,
             provisioners=(provisioner,),
             aggregator=aggregator,
             executor=lambda conn, tests=fmf_tests: FMFExecutor(
