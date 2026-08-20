@@ -22,7 +22,7 @@
       order: 10
       script: echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
 
-    - name: Install test + libvirt dependencies
+    - name: Install test + environmental dependencies
       how: install
       package:
         - xz
@@ -33,16 +33,7 @@
         - python3-pip
         - git-core
         - rsync
-        - openssh-clients
         - podman
-        # libvirt & dependencies
-        - libvirt-daemon
-        - libvirt-daemon-driver-qemu
-        - libvirt-daemon-driver-storage-disk
-        - qemu-kvm
-        - libvirt-client
-        - virt-install
-        - libguestfs-tools-c
         - xfsprogs
         - mdadm
 
@@ -56,43 +47,29 @@
         df -h
         mount
 
-    - name: Set up NVMe disks for use as libvirt storage
+    - name: Set up NVMe disks for use as container storage
       how: shell
       script: ./setup-disks.sh
 
     - name: Install atex
       how: shell
       script: |
-        python3 -m pip install 'atex>=1.0,<2'
-
-    - name: Copy atex-virt-helper to /usr/local/bin
-      how: shell
-      script: ./install-helper.py
-
-    - name: Set up libvirt and domains
-      how: shell
-      script: ./setup-libvirt.sh
+        python3 -m pip install git+https://github.com/RHSecurityCompliance/atex.git@devel
 
     - name: Clone and build CaC/content and Contest
       how: shell
       script: ./clone-repos.sh
 
-    - name: Generate an ssh key for connecting to VMs
+    - name: Pre-install per-CS podman images
       how: shell
-      script: ssh-keygen -t rsa -f "$VM_SSH_KEY" -N ''
-
-    - name: Pre-install CentOS VM images
-      how: shell
-      script: ./install-images.sh
+      script: ./build-images.sh
 
     - name: Free up resources
       how: shell
       script: |
         set -x +e
-        # we don't need built content (already copied into VM images)
+        # we don't need built content (already copied into podman images)
         rm -rf "$CONTENT_DIR_8" "$CONTENT_DIR_9" "$CONTENT_DIR_10"
-        # don't need podman anymore
-        podman system reset --force
         # free up page cache
         sync
         echo 3 > /proc/sys/vm/drop_caches
@@ -103,18 +80,14 @@
       script: |
         set -x +e
         df -h
-        ls -lsh /var/lib/libvirt/images
+        ls -lsh /var/lib/containers
 
   environment:
     CONTENT_DIR_8: /root/content/cs8
     CONTENT_DIR_9: /root/content/cs9
     CONTENT_DIR_10: /root/content/cs10
-    INSTALL_URL_8: https://vault.centos.org/8-stream/BaseOS/x86_64/os/
-    INSTALL_URL_9: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
-    INSTALL_URL_10: https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/os/
+    CONTENT_IN_IMAGE: /root/upstream-content
     CONTEST_DIR: /root/contest
-    VM_SSH_KEY: /root/ssh_key
-    CONTENT_ON_VM: /root/upstream-content
 
 /test:
   duration: 12h

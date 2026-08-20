@@ -9,19 +9,18 @@ import platform
 import random
 import shutil
 import signal
+import subprocess
 import sys
 import time
 from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
-from atex.connection.local import LocalConnection
 from atex.executor.fmf import FMFExecutor, discover, duration_to_seconds
 from atex.orchestrator import adhoc
-from atex.provisioner.shvirt import SharedVirtProvisioner
+from atex.provisioner.podman import SystemdPodmanProvisioner
 
 # from tmt plan
 contest = os.environ["CONTEST_DIR"]
-ssh_key = os.environ["VM_SSH_KEY"]
 
 # from Packit env / TF env
 plan = os.environ.get("PLAN", "/plans/daily")
@@ -148,10 +147,16 @@ logging.basicConfig(
 
 
 def format_statistics(pairs):
+    def system_stats():
+        r = subprocess.run(["vmstat", "-S", "M", "5", "2"], capture_output=True, text=True)
+        lines = r.stdout.strip().splitlines()
+        return lines[1], lines[-1]
+
     def gen():
         for orch, prov in pairs:
             yield str(prov)
             yield str(orch)
+        yield from system_stats()
 
     return "\n".join(gen())
 
@@ -182,22 +187,29 @@ with contextlib.ExitStack() as stack:
     )
     stack.enter_context(old_aggregator)
 
-    # one shared by all
-    localhost_conn = LocalConnection()
-    stack.enter_context(localhost_conn)
-
     running = set()
 
     for stream in streams:
         platform_name = f"cs{stream}"
 
-        provisioner = SharedVirtProvisioner(
-            host=localhost_conn,
-            image=platform_name,  # same as platform, see main.fmf
-            domain_sshkey=ssh_key,
-            domain_host="127.0.0.1",
-            reserve_name=f"{platform_name} testing",
-            reserve_delay=0.5,
+        provisioner = SystemdPodmanProvisioner(
+            image=platform_name,
+            run_options=(
+                # these are explicitly allowing all capabilities and syscalls,
+                # but always isolated to a userns, netns, etc.
+                # - basically simulating a light-weight virtual machine that has access
+                #   to low-level OS functionality, but within namespace boundaries
+                "--userns", "auto",
+                "--cap-add", "all",
+                "--security-opt", "seccomp=unconfined",
+                "--security-opt", "label=disable",
+                "--security-opt", "unmask=ALL",
+                # both these do namespaced access by default, so we can safely pass them
+                "--device", "/dev/kvm",
+                "--device", "/dev/net/tun",
+            ),
+            run_command=(),  # use image-embedded ENTRYPOINT and CMD
+            max_remotes=30,  # this is per centos-stream !
         )
         stack.enter_context(provisioner)
 
@@ -205,6 +217,11 @@ with contextlib.ExitStack() as stack:
             contest,
             plan,
             names=test_names,
+            excludes=(
+                # can't run inside a container
+                "/hardening/image-builder",
+                "/hardening/container/bootc-image-builder",
+            ),
             context={
                 "distro": f"centos-stream-{stream}",
                 "arch": platform.machine(),
@@ -227,19 +244,19 @@ with contextlib.ExitStack() as stack:
             pass
 
         # randomize test order to work better with Contest snapshot sharing
-        test_names = list(fmf_tests.data)
-        random.shuffle(test_names)
+        shuffled_names = list(fmf_tests.data)
+        random.shuffle(shuffled_names)
 
         orchestrator = PerStreamOrchestrator(
             platform=platform_name,
-            tests=test_names,
+            tests=shuffled_names,
             provisioners=(provisioner,),
             aggregator=aggregator,
             executor=lambda conn, tests=fmf_tests: FMFExecutor(
                 conn,
                 fmf_tests=tests,
-                # embedded inside the VM image by virt-copy-in
-                env={"CONTEST_CONTENT": os.environ["CONTENT_ON_VM"]},
+                # embedded inside the container image
+                env={"CONTEST_CONTENT": os.environ["CONTENT_IN_IMAGE"]},
             ),
             old_aggregator=old_aggregator,
             fmf_tests=fmf_tests,
