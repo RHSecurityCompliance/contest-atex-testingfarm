@@ -2,10 +2,10 @@
   provision:
     hardware:
       cpu:
-        processors: 48
-      memory: "384 GiB"
+        processors: ">= 96"
+      memory: ">= 192 GiB"
       disk:
-        - size: "100 GiB"
+        - size: ">= 100 GiB"
       virtualization:
         is-virtualized: false
         is-supported: true

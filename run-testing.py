@@ -220,7 +220,7 @@ with contextlib.ExitStack() as stack:
                 "--device", "/dev/net/tun",
             ),
             run_command=(),  # use image-embedded ENTRYPOINT and CMD
-            max_remotes=60,  # this is per centos-stream !
+            max_remotes=40,  # this is per centos-stream !
         )
         stack.enter_context(provisioner)
 
