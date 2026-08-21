@@ -2,6 +2,14 @@
 
 set -e -x
 
+# switch podman to VFS storage driver so the containers can use overlayfs
+# for their own nested podman (overlay-on-overlay doesn't work)
+cat > /etc/containers/storage.conf <<'EOF'
+[storage]
+driver = "vfs"
+EOF
+podman system reset --force
+
 cat > Containerfile <<'EOF'
 ARG BASE_IMAGE
 FROM $BASE_IMAGE

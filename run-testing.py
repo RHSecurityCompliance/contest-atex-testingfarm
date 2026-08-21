@@ -148,15 +148,26 @@ logging.basicConfig(
 
 def format_statistics(pairs):
     def system_stats():
-        r = subprocess.run(["vmstat", "-S", "M", "5", "2"], capture_output=True, text=True)
+        r = subprocess.run(
+            ["vmstat", "-S", "M", "5", "2"],
+            capture_output=True, text=True,
+        )
         lines = r.stdout.strip().splitlines()
         return lines[1], lines[-1]
+
+    def storage_stats():
+        r = subprocess.run(
+            ["df", "-h", "--output=size,used,avail,pcent,target", "/var/lib/containers"],
+            capture_output=True, text=True,
+        )
+        return r.stdout.strip().splitlines()
 
     def gen():
         for orch, prov in pairs:
             yield str(prov)
             yield str(orch)
         yield from system_stats()
+        yield from storage_stats()
 
     return "\n".join(gen())
 
