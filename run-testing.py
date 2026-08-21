@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
-from atex.executor.fmf import FMFExecutor, discover, duration_to_seconds
+from atex.executor.fmf import FMFExecutor, discover
 from atex.orchestrator import adhoc
 from atex.provisioner.podman import SystemdPodmanProvisioner
 
@@ -239,12 +239,6 @@ with contextlib.ExitStack() as stack:
             },
             libraries=False,
         )
-
-        # adjust all tests to have twice their max duration
-        for data in fmf_tests.data.values():
-            duration = data.get("duration", "5m")
-            secs = duration_to_seconds(duration)
-            data["duration"] = str(secs * 2)
 
         class PerStreamOrchestrator(
             ContestOrchestrator,
