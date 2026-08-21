@@ -49,6 +49,9 @@ COPY --from=content_from / $CONTENT_TO/
 CMD ["sh", "-c", "mount --make-rshared / && exec /sbin/init"]
 EOF
 
+# build all stream images in parallel
+trap 'kill $(jobs -p) 2>/dev/null || true; wait' EXIT
+declare -A pids
 for var in "${!CONTENT_DIR_@}"; do
   stream="${var#CONTENT_DIR_}"
   base_image="quay.io/centos/centos:stream$stream"
@@ -69,8 +72,26 @@ for var in "${!CONTENT_DIR_@}"; do
     --build-context "content_from=$content_dir" \
     --build-arg CONTENT_TO="$CONTENT_IN_IMAGE" \
     --build-arg PACKAGES="$contest_packages" \
-    -f Containerfile .
+    -f Containerfile . \
+    &> "/tmp/podman-build-cs${stream}.log" &
+  pids[$!]="cs$stream"
 done
+
+failed=
+while [[ ${#pids[@]} -gt 0 ]]; do
+  if ! wait -fn -p pid; then
+    failed=1
+    name=${pids[$pid]}
+    echo "error: '$name' image build failed:"
+    grep -H '' "/tmp/podman-build-${name}.log"
+  fi
+  unset "pids[$pid]"
+done
+trap - EXIT
+
+if [[ $failed ]]; then
+  exit 1
+fi
 
 # necessary for rootful --userns=auto
 if ! grep -q ^containers: /etc/subuid; then
