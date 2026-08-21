@@ -79,3 +79,8 @@ fi
 if ! grep -q ^containers: /etc/subgid; then
   echo "containers:2147483647:2147483648" >> /etc/subgid
 fi
+
+# needed because the default is extremely low (128) and shared across ALL
+# containers (children of the init user ns) - with one systemd taking up
+# ~15-20 inotify instances, we wouldn't be able to run more than ~8 namespaces
+sysctl -w fs.inotify.max_user_instances=65536
