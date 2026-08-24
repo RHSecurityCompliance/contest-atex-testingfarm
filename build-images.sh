@@ -45,9 +45,12 @@ RUN dnf clean packages
 # in SystemdPodmanConnection, ... so reduce the SIGKILL timer to 30sec
 RUN mkdir -p /etc/systemd/system.conf.d && printf '[Manager]\nDefaultTimeoutStopSec=30s\n' > /etc/systemd/system.conf.d/container.conf
 
-# avoid changing xattrs to remember original disk image owner
+# avoid changing xattrs to remember original disk image owner ...
+# also avoid libvirt creating its own mount namespace for qemu,
+# thus avoiding a "/dev/urandom File exists" error on RHEL-8
 RUN if [ -d /etc/libvirt ]; then \
     echo 'remember_owner = 0' >> /etc/libvirt/qemu.conf; \
+    echo 'namespaces = []' >> /etc/libvirt/qemu.conf; \
   fi
 
 # copy built content over
@@ -76,6 +79,7 @@ for var in "${!CONTENT_DIR_@}"; do
 
   podman image build \
     -t "cs$stream" \
+    --squash-all \
     --build-arg BASE_IMAGE="$base_image" \
     --build-context "content_from=$content_dir" \
     --build-arg CONTENT_TO="$CONTENT_IN_IMAGE" \

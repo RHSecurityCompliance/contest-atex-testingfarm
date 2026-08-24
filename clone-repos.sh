@@ -41,6 +41,9 @@ else
     git checkout -f "$PACKIT_SOURCE_SHA"
     popd
   fi
+
+  # patch VM-using code to not sync disk unless necessary
+  sed -e 's/cache=none/cache=unsafe/' -e 's/,io=native//' -i "$CONTEST_DIR/lib/virt.py"
 fi
 
 # build the PR's code in a secured container (may be malicious)
