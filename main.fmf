@@ -34,7 +34,7 @@
         - git-core
         - rsync
         - podman
-        - eatmydata
+        - gcc
 
     - name: Examine hardware
       how: shell
@@ -49,7 +49,8 @@
     - name: Avoid calling sync on the host
       how: shell
       script: |
-        echo "$(rpm -ql eatmydata | grep libeatmydata.so$)" >> /etc/ld.so.preload
+        gcc -O2 -shared -fPIC -o /usr/lib/libnosync.so nosync.c -ldl
+        echo /usr/lib/libnosync.so >> /etc/ld.so.preload
 
     - name: Install atex
       how: shell
