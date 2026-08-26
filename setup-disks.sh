@@ -13,7 +13,7 @@ fi
 # - tmpfs can't be used, it doesn't support reflink, and we get compression
 #   via zram this way too
 modprobe zram
-zdev=$(zramctl --find --size 250G --algorithm lz4)
+zdev=$(zramctl --find --size 300G --algorithm lz4)
 mkfs.xfs -m reflink=1 "$zdev"
 
 if [[ -d /var/lib/containers ]]; then
