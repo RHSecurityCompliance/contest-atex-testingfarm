@@ -1,32 +1,26 @@
-
 #!/bin/bash
         
 set -e -x
 
-# ensure we are on z1d metal with two unused NVMes
-empty_disks=()
-
-for disk in /dev/nvme[0-9]n1; do
-  if ! out=$(sfdisk -d "$disk" 2>&1); then
-    if [[ $out == *does\ not\ contain\ a\ recognized\ partition\ table* ]]; then
-      empty_disks+=("$disk")
-    fi
-  fi
-done
-if [[ ${#empty_disks[@]} -lt 2 ]]; then
-  echo "found <2 disks without partition tables (not on z1d metal AWS?)"
-  exit 1
+if cat /proc/swaps | grep zram0; then
+  swapoff /dev/zram0
+  zramctl --reset /dev/zram0
 fi
 
-# set them up in a JBOD
-mdadm --create /dev/md/bigstore --level=linear --raid-devices=2 "${empty_disks[@]}"
-mkfs.xfs /dev/md/bigstore
+# because the default XFS/btrfs is super slow over Amazon EC2 EBS,
+# create a fast zram-backed block device with XFS on top, and use it
+# for image storage
+# - tmpfs can't be used, it doesn't support reflink, and we get compression
+#   via zram this way too
+modprobe zram
+zdev=$(zramctl --find --size 250G --algorithm lz4)
+mkfs.xfs -m reflink=1 "$zdev"
 
 if [[ -d /var/lib/containers ]]; then
   # move over original /var/lib/containers
   mv /var/lib/containers{,.bak}
   mkdir /var/lib/containers
-  mount /dev/md/bigstore /var/lib/containers
+  mount "$zdev" /var/lib/containers
   for tool in chmod chown chcon; do
     "$tool" --reference=/var/lib/containers.bak /var/lib/containers  # the dir itself
   done
@@ -34,7 +28,6 @@ if [[ -d /var/lib/containers ]]; then
   rm -rf /var/lib/containers.bak
 else
   mkdir -p /var/lib/containers
-  mount /dev/md/bigstore /var/lib/containers
+  mount "$zdev" /var/lib/containers
   restorecon -vF /var/lib/containers
 fi
-

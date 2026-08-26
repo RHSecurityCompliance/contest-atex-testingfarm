@@ -2,7 +2,7 @@
   provision:
     hardware:
       cpu:
-        processors: 48
+        model-name: "=~ .*8488C.*"
       memory: "384 GiB"
       disk:
         - size: "100 GiB"
@@ -34,8 +34,6 @@
         - git-core
         - rsync
         - podman
-        - gcc
-        - mdadm
         - xfsprogs
 
     - name: Examine hardware
@@ -48,15 +46,9 @@
         df -h
         mount
 
-    - name: Set up NVMe disks for use as container storage
+    - name: Set up zram for use as container storage
       how: shell
       script: ./setup-disks.sh
-
-    - name: Avoid calling sync on the host
-      how: shell
-      script: |
-        gcc -O2 -shared -fPIC -o /usr/lib/libnosync.so nosync.c -ldl
-        echo /usr/lib/libnosync.so >> /etc/ld.so.preload
 
     - name: Install atex
       how: shell

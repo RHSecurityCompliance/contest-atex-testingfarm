@@ -31,7 +31,7 @@ RUN . /etc/os-release && \
 RUN dnf install -y --skip-broken --allowerasing \
   --setopt=install_weak_deps=False \
   --setopt=max_parallel_downloads=20 \
-  @core python3 rsync git-core systemd dbus-broker gcc $PACKAGES
+  @core python3 rsync git-core systemd dbus-broker $PACKAGES
 
 RUN dnf clean packages
 
@@ -52,11 +52,6 @@ RUN if [ -d /etc/libvirt ]; then \
     echo 'remember_owner = 0' >> /etc/libvirt/qemu.conf; \
     echo 'namespaces = []' >> /etc/libvirt/qemu.conf; \
   fi
-
-# prevent sync() on slow network storage
-COPY nosync.c /root/
-RUN gcc -O2 -shared -fPIC -o /usr/lib/libnosync.so /root/nosync.c -ldl && \
-    echo /usr/lib/libnosync.so >> /etc/ld.so.preload
 
 # copy built content over
 COPY --from=content_from / $CONTENT_TO/
