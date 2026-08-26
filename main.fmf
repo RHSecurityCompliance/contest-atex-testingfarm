@@ -2,10 +2,10 @@
   provision:
     hardware:
       cpu:
-        model-name: "=~ .*8488C.*"
-      memory: "<= 256 GiB"
+        processors: 48
+      memory: "384 GiB"
       disk:
-        - size: "500 GiB"
+        - size: "100 GiB"
       virtualization:
         is-virtualized: false
         is-supported: true
@@ -35,6 +35,8 @@
         - rsync
         - podman
         - gcc
+        - mdadm
+        - xfsprogs
 
     - name: Examine hardware
       how: shell
@@ -45,6 +47,10 @@
         lsblk
         df -h
         mount
+
+    - name: Set up NVMe disks for use as container storage
+      how: shell
+      script: ./setup-disks.sh
 
     - name: Avoid calling sync on the host
       how: shell
