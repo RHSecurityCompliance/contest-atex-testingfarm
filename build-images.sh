@@ -51,6 +51,7 @@ RUN mkdir -p /etc/systemd/system.conf.d && printf '[Manager]\nDefaultTimeoutStop
 RUN if [ -d /etc/libvirt ]; then \
     echo 'remember_owner = 0' >> /etc/libvirt/qemu.conf; \
     echo 'namespaces = []' >> /etc/libvirt/qemu.conf; \
+    echo 'cgroup_controllers = []' >> /etc/libvirt/qemu.conf; \
   fi
 
 # copy built content over
