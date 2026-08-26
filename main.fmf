@@ -80,6 +80,7 @@
         set -x +e
         df -h
         ls -lsh /var/lib/containers
+        dmesg
 
   environment:
     CONTENT_DIR_8: /root/content/cs8
