@@ -20,7 +20,7 @@ if [[ -d /var/lib/containers ]]; then
   # move over original /var/lib/containers
   mv /var/lib/containers{,.bak}
   mkdir /var/lib/containers
-  mount "$zdev" /var/lib/containers
+  mount -o discard "$zdev" /var/lib/containers
   for tool in chmod chown chcon; do
     "$tool" --reference=/var/lib/containers.bak /var/lib/containers  # the dir itself
   done
@@ -28,6 +28,6 @@ if [[ -d /var/lib/containers ]]; then
   rm -rf /var/lib/containers.bak
 else
   mkdir -p /var/lib/containers
-  mount "$zdev" /var/lib/containers
+  mount -o discard "$zdev" /var/lib/containers
   restorecon -vF /var/lib/containers
 fi
