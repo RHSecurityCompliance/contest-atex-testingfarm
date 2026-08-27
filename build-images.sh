@@ -18,21 +18,19 @@ FROM $BASE_IMAGE
 ARG CONTENT_TO
 ARG PACKAGES
 
-# fix centos8 repos to use vault
-RUN . /etc/os-release && \
-  if [ "$VERSION_ID" = 8 ]; then \
-    sed -i \
-      -e 's/^mirrorlist/#mirrorlist/' \
-      -e 's/^#baseurl/baseurl/' \
-      -e 's|mirror\.centos\.org|vault.centos.org|g' \
-      /etc/yum.repos.d/CentOS-*.repo; \
-  fi
+# use reliable CentOS Stream mirrors
+COPY centos-primary-mirror.sh /root/
+RUN /root/centos-primary-mirror.sh
+RUN dnf clean all
 
+# install @core and Contest requirements
 RUN dnf install -y --skip-broken --allowerasing \
   --setopt=install_weak_deps=False \
   --setopt=max_parallel_downloads=20 \
   @core python3 rsync git-core systemd dbus-broker $PACKAGES
 
+# upgrade to latest packages (from what was already installed)
+RUN dnf upgrade -y --skip-broken
 RUN dnf clean packages
 
 # from ATEX:
