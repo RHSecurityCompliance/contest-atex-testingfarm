@@ -4,7 +4,10 @@ set -e -x
 
 if cat /proc/swaps | grep zram0; then
   swapoff /dev/zram0
-  zramctl --reset /dev/zram0
+  for i in {1..60}; do
+      zramctl --reset /dev/zram0 && break
+      sleep 1
+  done
 fi
 
 # because the default XFS/btrfs is super slow over Amazon EC2 EBS,
