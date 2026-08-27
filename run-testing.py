@@ -276,13 +276,13 @@ with contextlib.ExitStack() as stack:
     for orch, _ in running:
         stack.enter_context(orch)
 
-    next_writeout = time.monotonic() + 300
+    next_writeout = time.monotonic() + 60
     while running:
         time.sleep(0.1)
 
         if time.monotonic() > next_writeout:
             logging.info(f"STATISTICS:\n{format_statistics(running)}")
-            next_writeout = time.monotonic() + 300
+            next_writeout = time.monotonic() + 60
 
         finished = {(orch, prov) for orch, prov in running if not orch.serve_once()}
 
