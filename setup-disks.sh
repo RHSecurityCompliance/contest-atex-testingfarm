@@ -31,3 +31,9 @@ else
   mount -o discard "$zdev" /var/lib/containers
   restorecon -vF /var/lib/containers
 fi
+
+# using zram like above creates a lot of fragmentation, causing qemu-kvm kills,
+# so defragment the memory a lot more aggressively, keeping at least 8GB
+# truly free (not cached)
+echo 80 > /proc/sys/vm/compaction_proactiveness
+echo 8388608 > /proc/sys/vm/min_free_kbytes
