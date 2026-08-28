@@ -232,7 +232,7 @@ with contextlib.ExitStack() as stack:
                 # can't run inside a container
                 "/hardening/image-builder",
                 "/hardening/container/bootc-image-builder",
-                "/hardening/host-os",
+                "/host-os/",
             ),
             context={
                 "distro": f"centos-stream-{stream}",
