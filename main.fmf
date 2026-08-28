@@ -83,11 +83,12 @@
         dmesg
 
   environment:
-    CONTENT_DIR_8: /root/content/cs8
-    CONTENT_DIR_9: /root/content/cs9
-    CONTENT_DIR_10: /root/content/cs10
+    # use the zram-backed storage to avoid slow network-based root
+    CONTENT_DIR_8: /var/lib/containers/tmp/content/cs8
+    CONTENT_DIR_9: /var/lib/containers/tmp/content/cs9
+    CONTENT_DIR_10: /var/lib/containers/tmp/content/cs10
+    CONTEST_DIR: /var/lib/containers/tmp/contest
     CONTENT_IN_IMAGE: /root/upstream-content
-    CONTEST_DIR: /root/contest
 
 /test:
   duration: 12h
