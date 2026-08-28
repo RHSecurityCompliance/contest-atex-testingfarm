@@ -233,6 +233,8 @@ with contextlib.ExitStack() as stack:
                 "/hardening/image-builder",
                 "/hardening/container/bootc-image-builder",
                 "/host-os/",
+                # doesn't make sense for upstream centos stream
+                "/scanning/disa-alignment",
             ),
             context={
                 "distro": f"centos-stream-{stream}",
