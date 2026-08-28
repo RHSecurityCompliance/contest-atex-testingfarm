@@ -4,22 +4,22 @@
 
 os_version=$(. /etc/os-release; echo "$VERSION_ID")
 
-# don't use gpgkey= repo options, import instead, because:
+# find any gpgkey= keys already in use, don't blindly put everything
+# into our own gpgkey= as there may be bad keys:
+#
 #   warning: Signature not supported. Hash algorithm SHA1 not available.
 #   Key import failed (code 2). Failing package is: NetworkManager-1:1.54.4-3.el9.x86_64
 #    GPG Keys are configured as: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Extras, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Extras-SHA512, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial-PQC
 
-shopt -s nullglob
-for key in /etc/pki/rpm-gpg/RPM-GPG-KEY-*; do
-    rpm --import "$key"
-done
-shopt -u nullglob
+existing_gpgkeys=$(sed -n 's|^gpgkey=file:|file:|p' /etc/yum.repos.d/* | sort -u)
 
 function mkrepo {
     echo "[$1]"
     echo "name=$1"
     echo "baseurl=$2"
     echo "gpgcheck=1"
+    # multiple on one line supported, see dnf.conf(5)
+    [[ $existing_gpgkeys ]] && echo gpgkey=$existing_gpgkeys
     local additional
     for additional in "${@:3}"; do
         echo "$additional"
