@@ -6,7 +6,6 @@ import logging
 import lzma
 import os
 import platform
-import random
 import shutil
 import signal
 import subprocess
@@ -44,11 +43,23 @@ class ContestOrchestrator:
           passed to the `executor` argument (factory function).
         """
         super().__init__(*args, **kwargs)
-        self.fmf_tests = fmf_tests
+
+        # pre-calculate guest tags classifications
+        self.__tag_idx = {}
+        for test_name in fmf_tests.data:
+            tag_names = fmf_tests.data[test_name].get("tag", ())
+            if tag := self._calculate_guest_tag(tag_names):
+                if tag in self.__tag_idx:
+                    self.__tag_idx[tag].add(test_name)
+                else:
+                    self.__tag_idx[tag] = {test_name}
+
+        self.__fmf_tests = fmf_tests
+        self.__seen_tags = set()
 
     # copy/pasted from the Contest repo, lib/virt.py
     @staticmethod
-    def calculate_guest_tag(tags):
+    def _calculate_guest_tag(tags):
         if "snapshottable" not in tags:
             return None
         name = "default"
@@ -61,7 +72,7 @@ class ContestOrchestrator:
         return name
 
     def next_test(self, to_run, previous, /):
-        all_tests = self.fmf_tests.data
+        all_tests = self.__fmf_tests.data
         # fresh remote, prefer running destructive tests (which likely need
         # clean OS) to get them out of the way and prevent them from running
         # on a tainted OS later
@@ -80,15 +91,23 @@ class ContestOrchestrator:
             finished_tags = all_tests[previous.test_name].get("tag", ())
             logging.debug(f"previous finished test on {previous.remote}: {previous.test_name}")
             # if Guest tag is None, don't bother searching
-            if finished_guest_tag := self.calculate_guest_tag(finished_tags):
-                for next_name in to_run:
-                    logging.debug(f"considering next_test with tags {finished_tags}: {next_name}")
-                    next_tags = all_tests[next_name].get("tag", ())
-                    next_guest_tag = self.calculate_guest_tag(next_tags)
-                    if next_guest_tag and finished_guest_tag == next_guest_tag:
-                        logging.debug(f"chosen next_test: {next_name}")
-                        return next_name
+            if finished_guest_tag := self._calculate_guest_tag(finished_tags):
+                if remaining := self.__tag_idx[finished_guest_tag].intersection(to_run):
+                    next_name = next(iter(remaining))
+                    self.__seen_tags.add(finished_guest_tag)
+                    logging.debug(f"chosen next_test: {next_name}")
+                    return next_name
 
+        # as a last-ditch attempt, try to find a test which could prepare
+        # a snapshottable VM for others, for a tag that we've never seen before
+        # (so that it can start a "snapshot reuse train" early)
+        for tag, tag_tests in self.__tag_idx.items():
+            if tag not in self.__seen_tags:
+                if remaining := tag_tests.intersection(to_run):
+                    self.__seen_tags.add(tag)
+                    return next(iter(remaining))
+
+        # defer to the base class or a mixin
         return super().next_test(to_run, previous)
 
     def destructive(self, info, /):
@@ -97,7 +116,7 @@ class ContestOrchestrator:
             return True
 
         # if the test was destructive, assume the remote is destroyed
-        test_data = self.fmf_tests.data[info.test_name]
+        test_data = self.__fmf_tests.data[info.test_name]
         tags = test_data.get("tag", ())
         if "destructive" in tags:
             return True
@@ -252,13 +271,9 @@ with contextlib.ExitStack() as stack:
         ):
             pass
 
-        # randomize test order to work better with Contest snapshot sharing
-        shuffled_names = list(fmf_tests.data)
-        random.shuffle(shuffled_names)
-
         orchestrator = PerStreamOrchestrator(
             platform=platform_name,
-            tests=shuffled_names,
+            tests=fmf_tests.data,
             provisioners=(provisioner,),
             aggregator=aggregator,
             executor=lambda conn, tests=fmf_tests: FMFExecutor(
