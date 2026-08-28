@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import atexit
+import collections
 import contextlib
 import logging
 import lzma
@@ -14,7 +15,7 @@ import time
 from pathlib import Path
 
 from atex.aggregator.jsonl import LZMAJSONLinesAggregator
-from atex.executor.fmf import FMFExecutor, discover
+from atex.executor.fmf import FMFExecutor, discover, duration_to_seconds
 from atex.orchestrator import adhoc
 from atex.provisioner.podman import SystemdPodmanProvisioner
 
@@ -45,17 +46,28 @@ class ContestOrchestrator:
         super().__init__(*args, **kwargs)
 
         # pre-calculate guest tags classifications
-        self.__tag_idx = {}
+        self.__tag_idx = collections.defaultdict(set)
+        self.__all_tagged_tests = set()
         for test_name in fmf_tests.data:
             tag_names = fmf_tests.data[test_name].get("tag", ())
             if tag := self._calculate_guest_tag(tag_names):
-                if tag in self.__tag_idx:
-                    self.__tag_idx[tag].add(test_name)
-                else:
-                    self.__tag_idx[tag] = {test_name}
+                self.__tag_idx[tag].add(test_name)
+                self.__all_tagged_tests.add(test_name)
+
+        self.__all_destructive_tests = {
+            name for name, meta in fmf_tests.data.items()
+            if "destructive" in meta.get("tag", ())
+        }
 
         self.__fmf_tests = fmf_tests
-        self.__seen_tags = set()
+        self.__seen_tags = collections.defaultdict(int)
+
+    def _fastest(self, tests):
+        meta = self.__fmf_tests.data
+        return min(
+            tests,
+            key=lambda name: duration_to_seconds(meta[name].get("duration", "5m")),
+        )
 
     # copy/pasted from the Contest repo, lib/virt.py
     @staticmethod
@@ -77,37 +89,38 @@ class ContestOrchestrator:
         # clean OS) to get them out of the way and prevent them from running
         # on a tainted OS later
         if type(previous) is self.SetupInfo:
-            for next_name in to_run:
-                next_tags = all_tests[next_name].get("tag", ())
-                logging.debug(f"considering next_test for destructivity: {next_name}")
-                if "destructive" in next_tags:
-                    logging.debug(f"chosen next_test: {next_name}")
-                    return next_name
+            if remaining := self.__all_destructive_tests & to_run:
+                return super().next_test(remaining, previous)
 
         # previous test was run and finished non-destructively,
         # try to find a next test with the same Contest lib.virt guest tags
         # as the previous one, allowing snapshot reuse by Contest
         elif type(previous) is self.FinishedInfo:
-            finished_tags = all_tests[previous.test_name].get("tag", ())
-            logging.debug(f"previous finished test on {previous.remote}: {previous.test_name}")
             # if Guest tag is None, don't bother searching
+            finished_tags = all_tests[previous.test_name].get("tag", ())
             if finished_guest_tag := self._calculate_guest_tag(finished_tags):
-                if remaining := self.__tag_idx[finished_guest_tag].intersection(to_run):
-                    next_name = next(iter(remaining))
-                    self.__seen_tags.add(finished_guest_tag)
-                    logging.debug(f"chosen next_test: {next_name}")
-                    return next_name
+                if remaining := self.__tag_idx[finished_guest_tag] & to_run:
+                    return super().next_test(remaining, previous)
 
-        # as a last-ditch attempt, try to find a test which could prepare
-        # a snapshottable VM for others, for a tag that we've never seen before
-        # (so that it can start a "snapshot reuse train" early)
-        for tag, tag_tests in self.__tag_idx.items():
-            if tag not in self.__seen_tags:
-                if remaining := tag_tests.intersection(to_run):
-                    self.__seen_tags.add(tag)
-                    return next(iter(remaining))
+        # next, try to find a test which could prepare a snapshottable VM
+        # for others (a.k.a. a "seeder"), for a tag that we've never seen
+        # before (so that it can start a "snapshot reuse train" early)
+        fewest_seeders = sorted(self.__tag_idx.items(), key=lambda x: self.__seen_tags[x[0]])
+        for tag, tag_tests in fewest_seeders:
+            # allow up to 10 sequential tests (1 seeder + 9 reuse), not more
+            # as it would hurt parallelism
+            if self.__seen_tags[tag] < len(tag_tests) / 10:
+                if remaining := tag_tests & to_run:
+                    self.__seen_tags[tag] += 1
+                    # we ideally need the fastest test
+                    return self._fastest(remaining)
 
-        # defer to the base class or a mixin
+        # as a last-ditch attempt, try to stall tagged tests, so they have
+        # a chance to catch a prepared snapshottable VM from above
+        if untagged := to_run - self.__all_tagged_tests:
+            return super().next_test(untagged, previous)
+
+        # fall back to the base class or a mixin
         return super().next_test(to_run, previous)
 
     def destructive(self, info, /):
