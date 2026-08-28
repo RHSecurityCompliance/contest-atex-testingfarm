@@ -80,7 +80,11 @@
         set -x +e
         df -h
         ls -lsh /var/lib/containers
-        dmesg
+        dmesg | grep -vE \
+          -e "zram: Cannot change disksize for initialized device" \
+          -e "port [^ ]+ entered [^ ]+ state$" \
+          -e ": entered (promiscuous|allmulticast) mode$" \
+          -e ".unregistering.: left [^ ]+ mode$"
 
   environment:
     # use the zram-backed storage to avoid slow network-based root
