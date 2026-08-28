@@ -246,6 +246,7 @@ with contextlib.ExitStack() as stack:
         class PerStreamOrchestrator(
             ContestOrchestrator,
             adhoc.FMFPriorityMixin(fmf_tests),
+            adhoc.FMFDurationMixin(fmf_tests),
             adhoc.LimitedRerunsMixin(reruns),
             adhoc.AdHocOrchestrator,
         ):
