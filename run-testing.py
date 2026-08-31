@@ -253,7 +253,6 @@ with contextlib.ExitStack() as stack:
                 # needed for fuse-overlayfs
                 "--device", "/dev/fuse",
             ),
-            run_command=(),  # use image-embedded ENTRYPOINT and CMD
             max_remotes=15,  # this is per centos-stream !
             isolate=True,
         )

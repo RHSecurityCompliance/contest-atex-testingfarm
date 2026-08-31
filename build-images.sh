@@ -37,9 +37,6 @@ RUN mkdir -p /etc/systemd/system.conf.d && printf '[Manager]\nDefaultTimeoutStop
 
 # copy built content over
 COPY --from=content_from / $CONTENT_TO/
-
-# simulate a real OS with shared-by-default mount namespaces
-CMD ["sh", "-c", "mount --make-rshared / && exec /sbin/init"]
 EOF
 
 # build all stream images in parallel
