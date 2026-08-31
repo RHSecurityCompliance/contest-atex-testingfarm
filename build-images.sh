@@ -2,14 +2,6 @@
 
 set -e -x
 
-# switch podman to VFS storage driver so the containers can use overlayfs
-# for their own nested podman (overlay-on-overlay doesn't work)
-cat > /etc/containers/storage.conf <<'EOF'
-[storage]
-driver = "vfs"
-EOF
-podman system reset --force
-
 cat > Containerfile <<'EOF'
 ARG BASE_IMAGE
 FROM $BASE_IMAGE
@@ -42,17 +34,6 @@ RUN dnf clean packages
 # 90sec for SIGKILL broadcast - over the 60sec of _wait_for_systemd()
 # in SystemdPodmanConnection, ... so reduce the SIGKILL timer to 30sec
 RUN mkdir -p /etc/systemd/system.conf.d && printf '[Manager]\nDefaultTimeoutStopSec=30s\n' > /etc/systemd/system.conf.d/container.conf
-
-# avoid changing xattrs to remember original disk image owner ...
-# also avoid libvirt creating its own mount namespace for qemu,
-# thus avoiding a "/dev/urandom File exists" error on RHEL-8
-RUN if [ -d /etc/libvirt ]; then \
-    echo 'remember_owner = 0' >> /etc/libvirt/qemu.conf; \
-    echo 'namespaces = []' >> /etc/libvirt/qemu.conf; \
-    echo 'cgroup_controllers = []' >> /etc/libvirt/qemu.conf; \
-    echo 'keepalive_interval = -1' >> /etc/libvirt/virtqemud.conf; \
-    echo 'keepalive_interval = -1' >> /etc/libvirt/libvirtd.conf; \
-  fi
 
 # copy built content over
 COPY --from=content_from / $CONTENT_TO/

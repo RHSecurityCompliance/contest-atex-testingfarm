@@ -250,9 +250,12 @@ with contextlib.ExitStack() as stack:
                 # both these do namespaced access by default, so we can safely pass them
                 "--device", "/dev/kvm",
                 "--device", "/dev/net/tun",
+                # needed for fuse-overlayfs
+                "--device", "/dev/fuse",
             ),
             run_command=(),  # use image-embedded ENTRYPOINT and CMD
             max_remotes=15,  # this is per centos-stream !
+            isolate=True,
         )
         stack.enter_context(provisioner)
 
