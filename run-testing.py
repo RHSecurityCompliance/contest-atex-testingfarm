@@ -247,6 +247,35 @@ with contextlib.ExitStack() as stack:
     for stream in streams:
         platform_name = f"cs{stream}"
 
+        logging.info(f"cs{stream}: discovering with plan '{plan}' and excludes: {test_excludes}")
+        fmf_tests = discover(
+            contest,
+            plan,
+            excludes=test_excludes,
+            context={
+                "distro": f"centos-stream-{stream}",
+                "arch": platform.machine(),
+            },
+            libraries=False,
+        )
+        logging.info(f"cs{stream}: initially discovered tests:\n{fmf_tests.data.keys()}")
+
+        # limit tests to just the ones specified via CI inputs
+        # (we can't use discover(names=...) because it merges the names
+        #  to the ones specified in the plan)
+        if test_names:
+            logging.info(f"cs{stream}: filtering tests to: {test_names}")
+            compiled = tuple(re.compile(pattern) for pattern in test_names)
+            fmf_tests.data = {
+                name: data for name, data in fmf_tests.data.items()
+                if any(pattern.search(name) for pattern in compiled)
+            }
+            logging.info(f"cs{stream}: discovered tests after filtering:\n{fmf_tests.data.keys()}")
+
+        if not fmf_tests.data:
+            logging.info(f"cs{stream}: SKIPPING, NO TESTS")
+            continue
+
         provisioner = SystemdPodmanProvisioner(
             image=platform_name,
             run_options=(
@@ -269,27 +298,6 @@ with contextlib.ExitStack() as stack:
             isolate=True,
         )
         stack.enter_context(provisioner)
-
-        fmf_tests = discover(
-            contest,
-            plan,
-            excludes=test_excludes,
-            context={
-                "distro": f"centos-stream-{stream}",
-                "arch": platform.machine(),
-            },
-            libraries=False,
-        )
-
-        # limit tests to just the ones specified via CI inputs
-        # (we can't use discover(names=...) because it merges the names
-        #  to the ones specified in the plan)
-        if test_names:
-            compiled = tuple(re.compile(pattern) for pattern in test_names)
-            fmf_tests.data = {
-                name: data for name, data in fmf_tests.data.items()
-                if any(pattern.search(name) for pattern in compiled)
-            }
 
         class PerStreamOrchestrator(
             ContestOrchestrator,
