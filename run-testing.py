@@ -7,6 +7,7 @@ import logging
 import lzma
 import os
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -272,7 +273,6 @@ with contextlib.ExitStack() as stack:
         fmf_tests = discover(
             contest,
             plan,
-            names=test_names,
             excludes=test_excludes,
             context={
                 "distro": f"centos-stream-{stream}",
@@ -280,6 +280,16 @@ with contextlib.ExitStack() as stack:
             },
             libraries=False,
         )
+
+        # limit tests to just the ones specified via CI inputs
+        # (we can't use discover(names=...) because it merges the names
+        #  to the ones specified in the plan)
+        if test_names:
+            compiled = tuple(re.compile(pattern) for pattern in test_names)
+            fmf_tests.data = {
+                name: data for name, data in fmf_tests.data.items()
+                if any(pattern.search(name) for pattern in compiled)
+            }
 
         class PerStreamOrchestrator(
             ContestOrchestrator,
