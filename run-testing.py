@@ -27,6 +27,17 @@ plan = os.environ.get("PLAN", "/plans/daily")
 reruns = int(os.environ.get("RERUNS", "1"))
 if (test_names := os.environ.get("TESTS")) is not None:
     test_names = test_names.split(",")
+    test_excludes = None
+else:
+    # if TESTS was not given
+    test_excludes = (
+        # can't run inside a container
+        "/hardening/image-builder",
+        "/hardening/container/bootc-image-builder",
+        "/host-os/",
+        # doesn't make sense for upstream centos stream
+        "/scanning/disa-alignment",
+    )
 
 # parse valid CentOS Streams from env variables
 streams = set()
@@ -262,14 +273,7 @@ with contextlib.ExitStack() as stack:
             contest,
             plan,
             names=test_names,
-            excludes=(
-                # can't run inside a container
-                "/hardening/image-builder",
-                "/hardening/container/bootc-image-builder",
-                "/host-os/",
-                # doesn't make sense for upstream centos stream
-                "/scanning/disa-alignment",
-            ),
+            excludes=test_excludes,
             context={
                 "distro": f"centos-stream-{stream}",
                 "arch": platform.machine(),
