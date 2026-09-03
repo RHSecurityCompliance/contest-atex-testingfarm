@@ -97,7 +97,7 @@
 /test:
   duration: 12h
   test: |
-    set -x -e
+    set -x -e +o pipefail
 
     ./run-testing.py
 
