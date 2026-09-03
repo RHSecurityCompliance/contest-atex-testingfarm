@@ -283,7 +283,7 @@ with contextlib.ExitStack() as stack:
                 # but always isolated to a userns, netns, etc.
                 # - basically simulating a light-weight virtual machine that has access
                 #   to low-level OS functionality, but within namespace boundaries
-                "--userns", "auto",
+                "--userns", "auto:size=1048576",  # slice out of 2^31 subuid, default 1024
                 "--cap-add", "all",
                 "--security-opt", "seccomp=unconfined",
                 "--security-opt", "label=disable",
