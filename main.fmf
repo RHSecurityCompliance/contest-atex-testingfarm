@@ -97,20 +97,29 @@
 /test:
   duration: 12h
   test: |
-    set -x -e +o pipefail
+    set -x -e
 
     ./run-testing.py
 
+    read -r PASS_FOUND FAIL_FOUND < <(
+      xzcat runs/results.json.xz | \
+      jq -rn '
+        reduce inputs as $r (
+          [false, false];
+          if   $r[1] == "pass"                      then .[0] = true
+          elif ($r[1] | IN("fail","error","infra")) then .[1] = true
+          else . end
+        ) | "\(.[0]) \(.[1])"
+      '
+    )
+    export PASS_FOUND FAIL_FOUND
+
     ./render-results.sh
 
-    # at least one pass
-    if ! xzcat runs/results.json.xz | jq -n -e 'first(inputs | select(.[1] == "pass"))'; then
+    if [[ $PASS_FOUND != true ]]; then
       echo "no pass results found"
       exit 1
-    fi
-
-    # exit with 1 on failure
-    if xzcat runs/results.json.xz | jq -n -e 'first(inputs | select(.[1] | IN("fail","error","infra")))'; then
+    elif [[ $FAIL_FOUND != false ]]; then
       echo "at least one failure found"
       exit 1
     fi

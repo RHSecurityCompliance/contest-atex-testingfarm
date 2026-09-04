@@ -20,10 +20,16 @@ if [[ -d old_runs ]]; then
   cp -rv "$atex_html"/{index.html,sqljs} output/old_runs/.
 fi
 
+if [[ $FAIL_FOUND == false ]]; then
+  where="subtest IS NULL"  # show passed tests
+else
+  where="status NOT IN ('pass', 'warn', 'skip')"  # show only failing
+fi
+
 # pre-fill the SQL filter since the index.html will be embedded within
 # the Oculus viewer without us being able to give it ?q= upfront
 # - only do that if the user hasn't pre-set query via direct URL
-sed "/DOMContentLoaded/a if (get_url_query() === null) set_url_query(\"status NOT IN ('pass', 'warn', 'skip') ORDER BY platform, test\");" \
+sed "/DOMContentLoaded/a if (get_url_query() === null) set_url_query(\"$where ORDER BY platform, test\");" \
   -i output/index.html
 
 mv -v output/* "$TMT_TEST_DATA/."
