@@ -28,9 +28,10 @@ plan = os.environ.get("PLAN", "/plans/daily")
 reruns = int(os.environ.get("RERUNS", "1"))
 if (test_names := os.environ.get("TESTS")) is not None:
     test_names = test_names.split(",")
+
+if os.environ.get("NO_EXCLUDES") == "1":
     test_excludes = None
 else:
-    # if TESTS was not given
     test_excludes = (
         # can't run inside a container
         "/hardening/image-builder",
