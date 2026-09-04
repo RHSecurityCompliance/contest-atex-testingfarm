@@ -38,6 +38,8 @@ else:
         "/host-os/",
         # doesn't make sense for upstream centos stream
         "/scanning/disa-alignment",
+        # works with un-namespaced kernel audit subsystem
+        "/scanning/audit-rules-syscalls-grouping",
     )
 
 # parse valid CentOS Streams from env variables
