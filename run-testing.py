@@ -298,7 +298,7 @@ with contextlib.ExitStack() as stack:
                 # needed for fuse-overlayfs
                 "--device", "/dev/fuse",
             ),
-            max_remotes=15,  # this is per centos-stream !
+            max_remotes=10,  # this is per centos-stream !
             isolate=True,
         )
         stack.enter_context(provisioner)
