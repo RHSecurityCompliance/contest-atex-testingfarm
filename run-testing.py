@@ -35,8 +35,7 @@ else:
     test_excludes = (
         # can't run inside a container
         "/hardening/image-builder",
-        "/hardening/container/bootc-image-builder",
-        "/hardening/container/old-new",
+        "/hardening/container",
         "/host-os/",
         # doesn't make sense for upstream centos stream
         "/scanning/disa-alignment",
